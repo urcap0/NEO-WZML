@@ -103,6 +103,13 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+from os import path as _ospath
+
+from fastapi.staticfiles import StaticFiles
+
+if _ospath.isdir("web/static"):
+    app.mount("/static", StaticFiles(directory="web/static"), name="static")
+
 
 templates = Jinja2Templates(directory="web/templates/")
 

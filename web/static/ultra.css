@@ -1,0 +1,292 @@
+/* This file is a part of NEO-WZML (github.com/irisXDR/NEO-WZML)
+   NEO-WZML ULTRA — shared design system for every web surface. */
+
+:root {
+  --bg-primary: #0a0e17;
+  --bg-secondary: #111827;
+  --bg-card: rgba(17, 24, 39, 0.8);
+  --bg-hover: rgba(55, 65, 81, 0.5);
+  --accent-primary: #6366f1;
+  --accent-secondary: #8b5cf6;
+  --accent-tertiary: #a855f7;
+  --accent-gradient: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+  --text-primary: #f9fafb;
+  --text-secondary: #9ca3af;
+  --text-muted: #6b7280;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.15);
+  --radius: 14px;
+  color-scheme: dark;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg-primary);
+  background-image:
+    radial-gradient(ellipse at top, rgba(99, 102, 241, 0.15) 0%, transparent 50%),
+    radial-gradient(ellipse at bottom right, rgba(139, 92, 246, 0.1) 0%, transparent 50%);
+  background-attachment: fixed;
+  color: var(--text-primary);
+  line-height: 1.6;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── header ───────────────────────────────────────────────── */
+.u-header {
+  background: var(--bg-card);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-bottom: 1px solid var(--border-color);
+  padding: 1rem 0;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.u-header-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+.u-logo {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+  /* let the wordmark give way before anything overflows the header */
+  min-width: 0;
+}
+.u-logo-mark {
+  width: 40px;
+  height: 40px;
+  border-radius: 11px;
+  display: grid;
+  place-items: center;
+  background: var(--accent-gradient);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.4);
+  font-weight: 800;
+  font-size: 1.05rem;
+  color: #fff;
+  letter-spacing: -0.02em;
+}
+.u-logo-text {
+  font-size: 1.15rem;
+  font-weight: 700;
+  background: var(--accent-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+.u-tag {
+  font-size: 0.62rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(139, 92, 246, 0.45);
+  color: var(--accent-secondary);
+  background: rgba(139, 92, 246, 0.12);
+}
+
+/* ── layout ───────────────────────────────────────────────── */
+.u-wrap {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 2rem 1.5rem 3rem;
+  flex: 1;
+}
+.u-wrap.narrow { max-width: 900px; }
+
+.u-title { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.01em; }
+.u-sub { color: var(--text-secondary); font-size: 0.9rem; margin-top: 0.35rem; }
+.u-page-head { margin-bottom: 1.75rem; }
+
+.u-card {
+  background: var(--bg-card);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--shadow-glow);
+}
+.u-card.flush { padding: 0; overflow: hidden; }
+.u-card h2 {
+  font-size: 0.95rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.u-card h2::before {
+  content: "";
+  width: 3px;
+  height: 15px;
+  border-radius: 3px;
+  background: var(--accent-gradient);
+}
+
+/* ── form controls ────────────────────────────────────────── */
+.u-grid {
+  display: grid;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+label {
+  display: block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 0.4rem;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+input, select {
+  width: 100%;
+  padding: 0.62rem 0.75rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-family: inherit;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+input:hover, select:hover { background: var(--bg-hover); }
+input:focus, select:focus {
+  outline: none;
+  border-color: var(--accent-primary);
+  background: rgba(99, 102, 241, 0.08);
+}
+select option { background: var(--bg-secondary); color: var(--text-primary); }
+input[type="range"] { padding: 0; accent-color: var(--accent-primary); }
+input[type="checkbox"] { width: auto; accent-color: var(--accent-primary); }
+
+.u-check {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.85rem;
+}
+.u-check label {
+  margin: 0;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--text-primary);
+  font-size: 0.88rem;
+  font-weight: 400;
+}
+.u-val { color: var(--accent-secondary); font-weight: 700; }
+
+/* ── buttons ──────────────────────────────────────────────── */
+.u-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.7rem 1.35rem;
+  border-radius: 11px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1px solid transparent;
+  background: var(--accent-gradient);
+  color: #fff;
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+}
+.u-btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+}
+.u-btn.ghost {
+  background: rgba(255, 255, 255, 0.035);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+.u-btn.ghost:hover {
+  background: var(--bg-hover);
+  border-color: var(--accent-primary);
+  box-shadow: none;
+}
+.u-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+
+/* ── misc ─────────────────────────────────────────────────── */
+.u-pre {
+  background: rgba(0, 0, 0, 0.35);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 0.85rem 1rem;
+  font-family: "SF Mono", ui-monospace, Menlo, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #a5b4fc;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  word-break: break-all;
+}
+.u-hint { color: var(--text-muted); font-size: 0.78rem; margin: 0.9rem 0 0.4rem; }
+.u-msg { font-size: 0.85rem; }
+.u-msg.ok { color: var(--success); }
+.u-msg.err { color: var(--danger); }
+
+.u-chips { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.u-chip {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.42rem 0.85rem;
+  border-radius: 999px;
+  font-size: 0.83rem;
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid var(--border-color);
+  transition: border-color 0.25s ease, background 0.25s ease;
+}
+.u-chip:hover { border-color: var(--accent-primary); background: var(--bg-hover); }
+.u-chip .x {
+  color: var(--text-muted);
+  cursor: pointer;
+  font-weight: 700;
+  line-height: 1;
+}
+.u-chip .x:hover { color: var(--danger); }
+
+.u-empty { color: var(--text-muted); font-size: 0.86rem; }
+
+.u-foot {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+  border-top: 1px solid var(--border-color);
+}
+.u-foot a { color: var(--accent-primary); text-decoration: none; }
+.u-foot a:hover { text-decoration: underline; }
+
+@media (max-width: 560px) {
+  .u-wrap { padding: 1.25rem 1rem 2rem; }
+  .u-card { padding: 1.15rem; }
+  /* full-width only inside action rows — a blanket .u-btn rule makes
+     buttons sitting beside other content (copy boxes) eat the row */
+  .u-actions > .u-btn { flex: 1 1 100%; }
+  .u-logo-text { font-size: 1rem; }
+}
