@@ -1,6 +1,6 @@
 ---
 name: neo-wzml
-description: "NEO-WZML project skill — a multi-functional Telegram mirror/leech bot for downloading from torrents, Mega, TeraBox, Google Drive, rclone, yt-dlp, JDownloader, and direct links, then uploading to Telegram, cloud drives, TeraBox, rclone remotes, or DDL hosts. Use when: developing, debugging, configuring, deploying, or extending NEO-WZML; adding new download/upload engines; working with Pyrogram bot handlers, FastAPI web UI, MongoDB persistence, Aria2/qBittorrent/MegaSDK/TeraBoxSDK integrations; writing or modifying plugins in the plugins/ folder; editing config.py / sample_config.py; troubleshooting Docker deployment, file selectors, queues, FFmpeg pipelines, archive handling, or task listeners; adding Telegram commands, arguments, or status trackers; working with the helper/ext_utils, helper/listeners, helper/mirror_leech_utils, or bot/modules subsystems."
+description: "NEO-WZML project skill — a multi-functional Telegram mirror/leech bot for downloading from torrents, Mega, TeraBox, Google Drive, rclone, yt-dlp, JDownloader, and direct links, then uploading to Telegram, cloud drives, TeraBox, rclone remotes, or DDL hosts. Use when: developing, debugging, configuring, deploying, or extending NEO-WZML; adding new download/upload engines; working with Pyrogram bot handlers, FastAPI web UI, MongoDB persistence, Aria2/qBittorrent/MegaSDK/TeraBoxSDK integrations; writing or modifying plugins in the plugins/ folder; editing config.py / sample_config.py; troubleshooting Docker deployment, file selectors, queues, FFmpeg pipelines, archive handling, or task listeners; adding Telegram commands, arguments, or status trackers; adding or debugging the opt-in add-ons (autorename, filetolink, tokengen, GDrive stream-leech) or the wzgram swap; working with the helper/ext_utils, helper/listeners, helper/mirror_leech_utils, or bot/modules subsystems."
 ---
 
 # NEO-WZML — Project Skill
@@ -282,6 +282,7 @@ Link-type routing inside `mirror_leech.py`: `is_magnet`/`.torrent` → Aria2 or 
 - Filters in `bot/helper/telegram_helper/filters.py` (`CustomFilters.authorized`, `sudo`, `owner`).
 - Argument parsing: `arg_parser` in `bot/helper/ext_utils/bot_utils.py`.
 - Common args: `-n` rename, `-s` select, `-z`/`-e` zip/extract, `-zim` image-only zip, `-mv` merge, `-up <dest>`, `-up tbx`, `-i <N>` multi, `-ud <dumps>`, `-ff` ffmpeg, `-ss`/`-sv` screenshots/sample.
+- Add-on commands (ultra branch): `/autorename` (`arn`), `/link` (`stream`, `f2l`), `/tokengen` (`tg`).
 - Live command list: send `/help` in Telegram.
 
 ## 7. Plugin System
@@ -564,6 +565,10 @@ All runtime settings are class attributes on `Config` in [bot/core/config_manage
 | Rename | `LEECH_NAME_SWAP`, `MIRROR_PREFIX`, `MIRROR_SUFFIX`, `MIRROR_NAME_SWAP` | empty | Filename transforms |
 | Thumbnails | `THUMBNAIL_LAYOUT` | empty | Thumbnail grid layout |
 | Media flags | `SOURCE_LINK`, `SCREENSHOTS_MODE`, `SHOW_MEDIAINFO`, `STOP_DUPLICATE`, `EXCLUDED_EXTENSIONS`, `FFMPEG_CMDS` | `False`, `False`, `False`, `False`, empty, `{}` | Media/archive features |
+| Add-on: FileToLink | `FILETOLINK_ENABLED`, `FILETOLINK_CHAT`, `FILETOLINK_AUTO` | `False`, empty, `True` | Public streaming/download links (bin chat + HMAC URLs) |
+| Add-on: TokenGen | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CREDENTIALS_JSON` | empty | Per-user Google OAuth token flow |
+| Add-on: AutoRename | `AUTO_RENAME` | empty | Global rename template (`{title} - S{season}E{episode} [{quality}]`) |
+| Add-on: Stream leech | `GDRIVE_STREAM_LEECH` | `False` | One-file-at-a-time GDrive folder leech |
 | BinConfig | `ARIA2_NAME`, `QBIT_NAME`, `FFMPEG_NAME`, `RCLONE_NAME` | `neoweb`, `neobit`, `neorender`, `neocloud` | Binary/process profile names |
 
 ### A.2 MongoDB collections and indexes (`DbManager`)
@@ -650,6 +655,9 @@ Static names live in [bot/helper/telegram_helper/bot_commands.py](../../../bot/h
 | `SpeedTest` | `speedtest`, `stest` | `SpeedTestCommand` | [bot/modules/speedtest.py](../../../bot/modules/speedtest.py) / plugins |
 | `Plugins` | `plugins` | `PluginsCommand` | [bot/modules/plugin_manager.py](../../../bot/modules/plugin_manager.py) |
 | `GDClean` | `gdclean`, `gc` | `GDCleanCommand` | [bot/modules/gd_clean.py](../../../bot/modules/gd_clean.py) |
+| `AutoRename` | `autorename`, `arn` | `AutoRenameCommand` | [bot/modules/autorename.py](../../../bot/modules/autorename.py) |
+| `FileToLink` | `link`, `stream`, `f2l` | `FileToLinkCommand` | [bot/modules/filetolink.py](../../../bot/modules/filetolink.py) |
+| `TokenGen` | `tokengen`, `tg` | `TokenGenCommand` | [bot/modules/token_generator.py](../../../bot/modules/token_generator.py) |
 | `Start` / `Login` | `start` / `login` | `StartCommand`, `LoginCommand` | [bot/modules/services.py](../../../bot/modules/services.py) |
 
 ### A.5 Argument parser flags
@@ -736,3 +744,48 @@ Defined in [bot/helper/telegram_helper/filters.py](../../../bot/helper/telegram_
 | `authorized_uset` | `authorized` OR user is a member of any authorized channel (used for user settings in PM). |
 
 Use `CustomFilters.owner`, `CustomFilters.sudo`, `CustomFilters.authorized`, and `CustomFilters.authorized_uset` in Pyrogram handler registration inside [bot/core/handlers.py](../../../bot/core/handlers.py).
+
+---
+
+## Appendix B — Opt-in Feature Add-ons (ultra branch)
+
+Ported additively from bharat5994/NEO-WZML `dev` onto the official 1.1.3 base. Every feature is disabled by default; enabling one never affects the others.
+
+### B.1 AutoRename (`/autorename`)
+
+- Files: [bot/modules/autorename.py](../../../bot/modules/autorename.py), [bot/helper/ext_utils/autorename_utils.py](../../../bot/helper/ext_utils/autorename_utils.py)
+- Hook: `format_filename` in [filename_utils.py](../../../bot/helper/ext_utils/filename_utils.py) applies the template first, then prefix/suffix/name-swap on top.
+- Keys: `AUTO_RENAME` (global default) + per-user template stored in `user_data["AUTO_RENAME"]` and persisted via `database.update_user_data`.
+- Placeholders: `{title}`, `{season}` / `{season_raw}`, `{episode}` / `{episode_raw}`, `{quality}`, `{year}`, `{group}`, `{codec}`, `{audio}`.
+- Enable: `/autorename [MyGroup] {title} - S{season}E{episode} [{quality}]`; `/autorename off` to disable; plain `/autorename` shows a sample preview.
+
+### B.2 FileToLink (`/link`, `/stream`, `/f2l`)
+
+- Files: [bot/modules/filetolink.py](../../../bot/modules/filetolink.py), [web/streamer.py](../../../web/streamer.py), [web/templates/player.html](../../../web/templates/player.html)
+- Web routes (port 880): `/stream/{msg_id}/{sig}`, `/dl/{msg_id}/{sig}` (HEAD+GET, byte-range), `/watch/{msg_id}/{sig}` (HTML player), `/api/filetolink/status`.
+- Keys: `FILETOLINK_ENABLED`, `FILETOLINK_CHAT` (bin channel, falls back to `LEECH_DUMP_CHAT`), `FILETOLINK_AUTO` (auto-link media sent to the bot in PM — handler registered in group 3, declines via `ContinuePropagation`).
+- Mechanism: file is copied to the bin chat; HMAC-signed URLs (secret derived from `BOT_TOKEN`) are verified by the gunicorn web process, which runs its own pool of bot + `HELPER_TOKENS` clients and load-balances range requests.
+- Enable: `FILETOLINK_ENABLED=true`, public `BASE_URL`, bot admin in the bin chat.
+- Caveats: makes stored files publicly downloadable by URL; the dev per-user opt-out UI was NOT ported.
+
+### B.3 TokenGen (`/tokengen`)
+
+- Files: [bot/modules/token_generator.py](../../../bot/modules/token_generator.py), [web/security.py](../../../web/security.py), [web/token_gen.py](../../../web/token_gen.py), [web/templates/token_generator.html](../../../web/templates/token_generator.html)
+- Web routes: `/app/token-generator` (GET form / POST start), `/app/token-generator/callback` (Google redirect).
+- Keys: `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_CREDENTIALS_JSON` (optional host-owned shared client).
+- Mechanism: signed expiring link (HMAC from `BOT_TOKEN`, 15-min TTL) → user brings their own OAuth client (upload `credentials.json` or paste ID/secret) → Google callback exchanges the code and stores `tokens/{user_id}.pickle`.
+- Requires: `python-multipart` (added), public `BASE_URL`, `DATABASE_URL`; OAuth redirect URI must include `/app/token-generator/callback`.
+
+### B.4 GDrive Stream Leech (`GDRIVE_STREAM_LEECH`)
+
+- File: [bot/helper/mirror_leech_utils/gdrive_utils/download.py](../../../bot/helper/mirror_leech_utils/gdrive_utils/download.py)
+- Key: `GDRIVE_STREAM_LEECH` (global) or per-task `stream_leech`.
+- Mechanism: for GDrive **folder** leech only — download 1 file, upload it via `TelegramUploader.upload_single`, delete, repeat (`_collect_folder_files` counts first; `stream_total_files` / `stream_done_files` track progress; `_stream_leech_handled` bypasses the normal `on_download_complete`).
+- Uploader refactor: `upload()` split into `_start_session` → `_upload_items` → `_finish_session` in [telegram_uploader.py](../../../bot/helper/mirror_leech_utils/upload_utils/telegram_uploader.py); `upload_single(dirpath, file_)` uploads exactly one file and the per-file body deletes it after send.
+- Effect: a multi-TB GDrive folder never needs more than ~1 file's worth of free disk.
+
+### B.5 wzgram swap
+
+- `requirements.txt` pins `wzgram==3.0.23` (drop-in pyrogram replacement with Rust warpcrypto; installs as the `pyrogram` package) instead of `pyroblack` + `tgcrypto-pyroblack`.
+- Apply on an existing install: `pip uninstall -y pyroblack tgcrypto-pyroblack` then `pip install -r requirements.txt`; verify with `python -c "import pyrogram; print(pyrogram.__file__)"` (path must contain `wzgram`).
+- Not ported from dev: `COLORED_BTNS`, premium emoji/sticker extras, `neo_ultra` theme, HyperUpload (`USE_HYPER`) — those need dev's `button_build.py` rework / a Premium-linked bot / `HELPER_TOKENS` infra respectively.

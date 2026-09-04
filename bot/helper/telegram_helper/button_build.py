@@ -1,6 +1,57 @@
 # This file is a part of NEO-WZML (github.com/irisXDR/NEO-WZML)
 
+from pyrogram.enums import ButtonStyle
 from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+
+# Telegram inline buttons can't be truly colored on standard pyrogram,
+# so "button color" is an accent decoration applied to the label. Each
+# style maps to (prefix, suffix) wrapped around the button text.
+# "none" = plain (default look).
+BUTTON_STYLES = {
+    "none": ("", ""),
+    "blue": ("🔵 ", ""),
+    "red": ("🔴 ", ""),
+    "green": ("🟢 ", ""),
+    "pink": ("🩷 ", ""),
+    "purple": ("🟣 ", ""),
+    "cyan": ("🔷 ", ""),
+    "orange": ("🟠 ", ""),
+    "yellow": ("🟡 ", ""),
+}
+
+
+def _decorate(key):
+    from bot.core.config_manager import Config
+
+    prefix, suffix = BUTTON_STYLES.get(
+        getattr(Config, "BUTTON_STYLE", "none") or "none", ("", "")
+    )
+    return f"{prefix}{key}{suffix}"
+
+
+def _resolve(key, style):
+    """Returns (label, native_style). native_style is None unless
+    COLORED_BTNS is enabled — so plain pyroblack installs never receive
+    the wzgram-only style kwarg."""
+    from bot.core.config_manager import Config
+
+    if style is not None and getattr(Config, "COLORED_BTNS", False):
+        return str(key), style
+    return _decorate(key), None
+
+
+def _premium_icon():
+    """Custom-emoji icon id for a button, or None. Telegram only accepts
+    icon_custom_emoji_id from Premium-linked bots — see Config.IS_PREMIUM_BOT
+    / PREMIUM_EMOJI_ID — so this stays None (plain button) unless both are
+    set."""
+    from bot.core.config_manager import Config
+
+    if getattr(Config, "IS_PREMIUM_BOT", False) and getattr(
+        Config, "PREMIUM_EMOJI_ID", ""
+    ):
+        return Config.PREMIUM_EMOJI_ID
+    return None
 
 
 class ButtonMaker:
@@ -13,14 +64,28 @@ class ButtonMaker:
             "footer": [],
         }
 
-    def url_button(self, key, link, position=None):
+    def url_button(self, key, link, position=None, style=None, premium_icon=False):
+        label, native_style = _resolve(key, style)
+        icon = _premium_icon() if premium_icon else None
+        kwargs = {"text": label, "url": link}
+        if native_style is not None:
+            kwargs["style"] = native_style
+        if icon:
+            kwargs["icon_custom_emoji_id"] = icon
         self.buttons[position if position in self.buttons else "default"].append(
-            InlineKeyboardButton(text=key, url=link)
+            InlineKeyboardButton(**kwargs)
         )
 
-    def data_button(self, key, data, position=None):
+    def data_button(self, key, data, position=None, style=None, premium_icon=False):
+        label, native_style = _resolve(key, style)
+        icon = _premium_icon() if premium_icon else None
+        kwargs = {"text": label, "callback_data": data}
+        if native_style is not None:
+            kwargs["style"] = native_style
+        if icon:
+            kwargs["icon_custom_emoji_id"] = icon
         self.buttons[position if position in self.buttons else "default"].append(
-            InlineKeyboardButton(text=key, callback_data=data)
+            InlineKeyboardButton(**kwargs)
         )
 
     def build_menu(self, b_cols=1, h_cols=8, fb_cols=2, lb_cols=2, f_cols=8):
