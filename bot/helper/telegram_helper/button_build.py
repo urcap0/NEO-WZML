@@ -47,16 +47,15 @@ def _resolve(key, style):
 
     Priority: explicit style= at the call site → built-in auto style for
     well-known labels (Close/Cancel/Stop/Delete → DANGER, Yes!/Confirm/Ok
-    → SUCCESS, Back/Refresh/Next → PRIMARY) → global BUTTON_STYLE accent.
-    Native colors only render when COLORED_BTNS is on."""
+    → SUCCESS, Back/Refresh/Next → PRIMARY) → PRIMARY fallback so EVERY
+    button is colored. Native colors only render when COLORED_BTNS is on."""
     from bot.core.config_manager import Config
 
     if style is not None and getattr(Config, "COLORED_BTNS", False):
         return str(key), style
     if getattr(Config, "COLORED_BTNS", False):
         auto = _DEFAULT_AUTO_STYLES.get(str(key).strip().lower())
-        if auto is not None:
-            return str(key), auto
+        return str(key), auto if auto is not None else ButtonStyle.PRIMARY
     return _decorate(key), ButtonStyle.DEFAULT
 
 
