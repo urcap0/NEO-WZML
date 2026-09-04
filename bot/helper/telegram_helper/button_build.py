@@ -42,38 +42,43 @@ def _decorate(key):
     return f"{prefix}{text}{suffix}"
 
 
+_DANGER_WORDS = {
+    "close", "cancel", "stop", "delete", "remove", "unauthorize", "disable",
+    "deny", "reject", "exit", "clear", "del", "unsubscribe", "no",
+}
+_SUCCESS_WORDS = {
+    "yes", "confirm", "ok", "okay", "start", "save", "enable", "add",
+    "authorize", "select", "accept", "approve", "watch", "download",
+    "login", "verify", "create", "open", "resume", "view", "done",
+}
+
+
+def _classify(key):
+    """Destructive words → DANGER, positive words → SUCCESS, else PRIMARY."""
+    from re import findall
+
+    tokens = set(findall(r"[a-z]+", str(key).lower()))
+    if tokens & _DANGER_WORDS:
+        return ButtonStyle.DANGER
+    if tokens & _SUCCESS_WORDS:
+        return ButtonStyle.SUCCESS
+    return ButtonStyle.PRIMARY
+
+
 def _resolve(key, style):
     """Returns (label, native_style) for one button.
 
-    Priority: explicit style= at the call site → built-in auto style for
-    well-known labels (Close/Cancel/Stop/Delete → DANGER, Yes!/Confirm/Ok
-    → SUCCESS, Back/Refresh/Next → PRIMARY) → PRIMARY fallback so EVERY
-    button is colored. Native colors only render when COLORED_BTNS is on."""
+    With COLORED_BTNS on, EVERY button gets a native color: destructive
+    labels → DANGER, positive labels → SUCCESS, everything else → PRIMARY.
+    An explicit style= at the call site always wins. With COLORED_BTNS
+    off, only the global BUTTON_STYLE accent applies."""
     from bot.core.config_manager import Config
 
     if style is not None and getattr(Config, "COLORED_BTNS", False):
         return str(key), style
     if getattr(Config, "COLORED_BTNS", False):
-        auto = _DEFAULT_AUTO_STYLES.get(str(key).strip().lower())
-        return str(key), auto if auto is not None else ButtonStyle.PRIMARY
+        return str(key), _classify(key)
     return _decorate(key), ButtonStyle.DEFAULT
-
-
-_DEFAULT_AUTO_STYLES = {
-    "close": ButtonStyle.DANGER,
-    "cancel": ButtonStyle.DANGER,
-    "stop": ButtonStyle.DANGER,
-    "delete": ButtonStyle.DANGER,
-    "✕ delete": ButtonStyle.DANGER,
-    "yes!": ButtonStyle.SUCCESS,
-    "confirm": ButtonStyle.SUCCESS,
-    "ok": ButtonStyle.SUCCESS,
-    "start": ButtonStyle.SUCCESS,
-    "back": ButtonStyle.PRIMARY,
-    "refresh": ButtonStyle.PRIMARY,
-    "next": ButtonStyle.PRIMARY,
-    "previous": ButtonStyle.PRIMARY,
-}
 
 
 def _premium_icon():
