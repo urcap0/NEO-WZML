@@ -212,7 +212,7 @@ AUTO_RENAME = ""
 GDRIVE_STREAM_LEECH = False
 
 # Button styling (needs wzgram for real colors)
-BUTTON_STYLE = "none"  # emoji accent: none/blue/red/green/pink/purple/cyan/orange/yellow
+BUTTON_STYLE = "none"  # emoji accent: none/blue/red/green/purple/orange/yellow/diamond/star/arrow/bracket
 COLORED_BTNS = False  # real colored buttons (PRIMARY/DANGER/SUCCESS) via wzgram
 IS_PREMIUM_BOT = False  # bot account linked to Telegram Premium (set manually)
 PREMIUM_EMOJI_ID = ""  # custom emoji document id for button icons
