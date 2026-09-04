@@ -32,12 +32,37 @@ def _decorate(key):
 def _resolve(key, style):
     """Returns (label, native_style). native_style is None unless
     COLORED_BTNS is enabled — so plain pyroblack installs never receive
-    the wzgram-only style kwarg."""
+    the wzgram-only style kwarg.
+
+    With COLORED_BTNS on, well-known labels get an automatic style when
+    the call site passed none: Close/Cancel/Stop/Delete → DANGER,
+    Yes/Confirm/Ok → SUCCESS, Back/Refresh/Next → PRIMARY."""
     from bot.core.config_manager import Config
 
     if style is not None and getattr(Config, "COLORED_BTNS", False):
         return str(key), style
+    if getattr(Config, "COLORED_BTNS", False):
+        auto = _AUTO_STYLE.get(str(key).strip().lower())
+        if auto is not None:
+            return str(key), auto
     return _decorate(key), None
+
+
+_AUTO_STYLE = {
+    "close": ButtonStyle.DANGER,
+    "cancel": ButtonStyle.DANGER,
+    "stop": ButtonStyle.DANGER,
+    "delete": ButtonStyle.DANGER,
+    "✕ delete": ButtonStyle.DANGER,
+    "yes!": ButtonStyle.SUCCESS,
+    "confirm": ButtonStyle.SUCCESS,
+    "ok": ButtonStyle.SUCCESS,
+    "start": ButtonStyle.SUCCESS,
+    "back": ButtonStyle.PRIMARY,
+    "refresh": ButtonStyle.PRIMARY,
+    "next": ButtonStyle.PRIMARY,
+    "previous": ButtonStyle.PRIMARY,
+}
 
 
 def _premium_icon():
