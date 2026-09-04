@@ -94,9 +94,6 @@ class Config:
     CAP_FONT = "code"
     BUTTON_STYLE = "none"  # inline button accent: see BUTTON_STYLES in button_build.py
     COLORED_BTNS = False  # real colored buttons via wzgram ButtonStyle (opt-in)
-    # per-label auto styles: {"close": "danger", "back": "blue", ...}
-    # native names: danger/success/primary/default; accents: any BUTTON_STYLES key
-    BTN_AUTO_STYLES = {}
     IS_PREMIUM_BOT = False  # bot account has Telegram Premium (set manually)
     PREMIUM_EMOJI_ID = ""  # custom emoji document id for button icons
     LEECH_SPLIT_SIZE = 2097152000

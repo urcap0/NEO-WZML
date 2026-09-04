@@ -42,65 +42,38 @@ def _decorate(key):
     return f"{prefix}{text}{suffix}"
 
 
-def _auto_style_name(key):
-    """Style name configured for this label. Values can be a native
-    ButtonStyle name (danger/success/primary/default) or an accent name
-    from BUTTON_STYLES (blue/red/green/...). Config.BTN_AUTO_STYLES
-    overrides the built-in defaults per label."""
-    from bot.core.config_manager import Config
-
-    mapping = getattr(Config, "BTN_AUTO_STYLES", None)
-    if not isinstance(mapping, dict):
-        mapping = {}
-    return mapping.get(str(key).strip().lower()) or _DEFAULT_AUTO_STYLES.get(
-        str(key).strip().lower()
-    )
-
-
 def _resolve(key, style):
     """Returns (label, native_style) for one button.
 
-    Priority: explicit style= at the call site → per-label auto style from
-    Config.BTN_AUTO_STYLES (or built-in defaults) → global BUTTON_STYLE
-    accent. Native colors (PRIMARY/DANGER/SUCCESS) only render when
-    COLORED_BTNS is on; accent names decorate the label everywhere."""
+    Priority: explicit style= at the call site → built-in auto style for
+    well-known labels (Close/Cancel/Stop/Delete → DANGER, Yes!/Confirm/Ok
+    → SUCCESS, Back/Refresh/Next → PRIMARY) → global BUTTON_STYLE accent.
+    Native colors only render when COLORED_BTNS is on."""
     from bot.core.config_manager import Config
 
     if style is not None and getattr(Config, "COLORED_BTNS", False):
         return str(key), style
-
-    auto = _auto_style_name(key)
-    if auto:
-        auto_l = str(auto).lower()
-        if auto_l in ("danger", "success", "primary", "default"):
-            native = getattr(ButtonStyle, auto_l.upper(), None)
-            if native is not None and getattr(Config, "COLORED_BTNS", False):
-                return str(key), native
-        acc = BUTTON_STYLES.get(auto_l)
-        if acc and (acc[0] or acc[1]):
-            text = str(key)
-            first = text[:1]
-            if not first or (not first.isalnum() and first not in "([<#/"):
-                return text, ButtonStyle.DEFAULT
-            return f"{acc[0]}{text}{acc[1]}", ButtonStyle.DEFAULT
-
+    if getattr(Config, "COLORED_BTNS", False):
+        auto = _DEFAULT_AUTO_STYLES.get(str(key).strip().lower())
+        if auto is not None:
+            return str(key), auto
     return _decorate(key), ButtonStyle.DEFAULT
 
 
 _DEFAULT_AUTO_STYLES = {
-    "close": "danger",
-    "cancel": "danger",
-    "stop": "danger",
-    "delete": "danger",
-    "✕ delete": "danger",
-    "yes!": "success",
-    "confirm": "success",
-    "ok": "success",
-    "start": "success",
-    "back": "primary",
-    "refresh": "primary",
-    "next": "primary",
-    "previous": "primary",
+    "close": ButtonStyle.DANGER,
+    "cancel": ButtonStyle.DANGER,
+    "stop": ButtonStyle.DANGER,
+    "delete": ButtonStyle.DANGER,
+    "✕ delete": ButtonStyle.DANGER,
+    "yes!": ButtonStyle.SUCCESS,
+    "confirm": ButtonStyle.SUCCESS,
+    "ok": ButtonStyle.SUCCESS,
+    "start": ButtonStyle.SUCCESS,
+    "back": ButtonStyle.PRIMARY,
+    "refresh": ButtonStyle.PRIMARY,
+    "next": ButtonStyle.PRIMARY,
+    "previous": ButtonStyle.PRIMARY,
 }
 
 
