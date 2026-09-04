@@ -16,6 +16,7 @@ from tenacity import (
 
 from bot.helper.ext_utils.bot_utils import async_to_sync
 from bot.helper.ext_utils.bot_utils import SetInterval
+from bot.core.config_manager import Config
 from bot.helper.mirror_leech_utils.gdrive_utils.helper import GoogleDriveHelper
 
 LOGGER = getLogger(__name__)
@@ -66,13 +67,28 @@ class GoogleDriveDownload(GoogleDriveHelper):
         self._updater.cancel()
         if self.listener.is_cancelled:
             return
+        if getattr(self.listener, "_stream_leech_handled", False):
+            # _download_folder_streaming already drove its own upload and
+            # called on_upload_complete directly per file-group.
+            return
         async_to_sync(self.listener.on_download_complete)
         return
 
     def _attempt_download(self, file_id):
         meta = self.get_file_metadata(file_id)
         if meta.get("mimeType") == self.G_DRIVE_DIR_MIME_TYPE:
-            self._download_folder(file_id, self._path, self.listener.name)
+            if self.listener.is_leech and (
+                Config.GDRIVE_STREAM_LEECH or self.listener.stream_leech
+            ):
+                # One file on disk at a time: download it, hand it straight
+                # to Telegram, delete it, move to the next. See
+                # _download_folder_streaming for why this bypasses the
+                # normal on_download_complete flow.
+                self._download_folder_streaming(
+                    file_id, self._path, self.listener.name
+                )
+            else:
+                self._download_folder(file_id, self._path, self.listener.name)
         else:
             makedirs(self._path, exist_ok=True)
             self._download_file(
@@ -122,6 +138,8 @@ class GoogleDriveDownload(GoogleDriveHelper):
                 self._attempt_download(file_id)
                 self._updater.cancel()
                 if self.listener.is_cancelled:
+                    return True
+                if getattr(self.listener, "_stream_leech_handled", False):
                     return True
                 async_to_sync(self.listener.on_download_complete)
                 return True
@@ -204,6 +222,89 @@ class GoogleDriveDownload(GoogleDriveHelper):
                 self._download_file(file_id, path, filename, mime_type)
             if self.listener.is_cancelled:
                 break
+
+    def _collect_folder_files(self, folder_id, rel_dir, out_list):
+        """Recursively list every leaf file under a GDrive folder without
+        downloading anything, resolving shortcuts the same way
+        _download_folder does. Used by _download_folder_streaming to know
+        the total file count up front (for the status Files: X/Y counter)
+        before any bytes are pulled."""
+        result = self.get_files_by_folder_id(folder_id)
+        if len(result) == 0:
+            return
+        result = sorted(result, key=lambda k: k["name"])
+        for item in result:
+            file_id = item["id"]
+            filename = item["name"]
+            shortcut_details = item.get("shortcutDetails")
+            if shortcut_details is not None:
+                file_id = shortcut_details["targetId"]
+                mime_type = shortcut_details["targetMimeType"]
+            else:
+                mime_type = item.get("mimeType")
+            if mime_type == self.G_DRIVE_DIR_MIME_TYPE:
+                sub_rel = f"{rel_dir}/{filename}" if rel_dir else filename
+                self._collect_folder_files(file_id, sub_rel, out_list)
+            else:
+                out_list.append((rel_dir, file_id, filename, mime_type))
+            if self.listener.is_cancelled:
+                break
+
+    def _download_folder_streaming(self, folder_id, path, folder_name):
+        """GDrive-folder leech, one file at a time: download a single file
+        to disk, upload it to Telegram, let the uploader delete it, then
+        move to the next file. At no point does more than one file's worth
+        of the folder sit on the VPS, unlike _download_folder (which pulls
+        every file down before any upload starts)."""
+        from bot.helper.mirror_leech_utils.upload_utils.telegram_uploader import (
+            TelegramUploader,
+        )
+
+        folder_name = folder_name.replace("/", "")
+        dest_root = f"{path}/{folder_name}"
+        if not ospath.exists(dest_root):
+            makedirs(dest_root)
+
+        file_list = []
+        self._collect_folder_files(folder_id, "", file_list)
+        total = len(file_list)
+        self.listener.stream_total_files = total
+        self.listener.stream_done_files = 0
+        # Marks this task as self-finalizing so download() / the retry path
+        # in _handle_download_error skip the normal on_download_complete
+        # call once this method returns — we drive on_upload_complete
+        # ourselves below instead.
+        self.listener._stream_leech_handled = True
+
+        if total == 0:
+            async_to_sync(
+                self.listener.on_upload_error,
+                "No files found in this Google Drive folder.",
+            )
+            return
+
+        uploader = TelegramUploader(self.listener, dest_root)
+        if not async_to_sync(uploader._start_session):
+            return
+
+        for rel_dir, file_id_, filename, mime_type_ in file_list:
+            if self.listener.is_cancelled:
+                break
+            sub_path = f"{dest_root}/{rel_dir}" if rel_dir else dest_root
+            makedirs(sub_path, exist_ok=True)
+            dest_file = ospath.join(sub_path, filename)
+            if ospath.isfile(dest_file) or filename.strip().lower().endswith(
+                tuple(self.listener.excluded_extensions)
+            ):
+                self.listener.stream_done_files += 1
+                continue
+            self._download_file(file_id_, sub_path, filename, mime_type_)
+            if self.listener.is_cancelled:
+                break
+            async_to_sync(uploader.upload_single, sub_path, filename)
+            self.listener.stream_done_files += 1
+
+        async_to_sync(uploader._finish_session)
 
     @retry(
         wait=wait_exponential(multiplier=2, min=3, max=20),
@@ -288,4 +389,7 @@ class GoogleDriveDownload(GoogleDriveHelper):
                 fh.close()
             except Exception:
                 pass
+        # Clear the stale progress object as soon as this file's transfer
+        # ends so the background updater can't double-count bytes.
+        self.status = None
         self.file_processed_bytes = 0

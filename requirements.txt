@@ -13,6 +13,7 @@ cloudscraper
 curl-cffi
 dnspython
 fastapi
+python-multipart
 feedparser
 google-api-python-client
 google-auth-httplib2
@@ -30,7 +31,7 @@ pillow
 psutil
 pycountry
 pymongo
-pyroblack
+wzgram==3.0.23
 python-magic
 pytz
 qbittorrent-api
@@ -38,7 +39,6 @@ requests
 speedtest-cli
 telegraph
 tenacity
-tgcrypto-pyroblack
 urllib3
 uvicorn
 uvloop==0.21.0

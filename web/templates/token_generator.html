@@ -1,0 +1,377 @@
+<!-- This file is a part of NEO-WZML (github.com/irisXDR/NEO-WZML) -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{{ title }} — NEO-WZML ULTRA</title>
+    <link rel="icon" type="image/png" href="https://iili.io/FLRJNMG.th.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/static/ultra.css" />
+    <style>
+      .center { text-align: center; padding: 2rem 0.25rem; }
+      .glyph {
+        font-size: 2.6rem;
+        margin-bottom: 0.9rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .glyph.ok { background: none; -webkit-text-fill-color: initial; color: var(--success); }
+      .glyph.bad { background: none; -webkit-text-fill-color: initial; color: var(--danger); }
+      .lead { font-size: 1.15rem; font-weight: 600; margin-bottom: 0.45rem; }
+      .body {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        max-width: 440px;
+        margin: 0 auto 1.4rem;
+      }
+      .tg-head { text-align: center; margin-bottom: 1.4rem; }
+      .tg-head .body { margin-bottom: 0; }
+
+      .alert {
+        display: flex;
+        gap: 0.6rem;
+        align-items: flex-start;
+        background: rgba(239, 68, 68, 0.1);
+        border: 1px solid rgba(239, 68, 68, 0.4);
+        color: #fca5a5;
+        border-radius: 11px;
+        padding: 0.7rem 0.9rem;
+        font-size: 0.85rem;
+        margin-bottom: 1.1rem;
+      }
+
+      .u-btn.wide { width: 100%; }
+      .hint-sm {
+        color: var(--text-muted);
+        font-size: 0.76rem;
+        margin-top: 0.55rem;
+        text-align: center;
+      }
+
+      .or {
+        display: flex;
+        align-items: center;
+        gap: 0.8rem;
+        margin: 1.4rem 0;
+        color: var(--text-muted);
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+      }
+      .or::before, .or::after {
+        content: "";
+        flex: 1;
+        height: 1px;
+        background: var(--border-color);
+      }
+
+      .tabs {
+        display: flex;
+        gap: 0.4rem;
+        background: rgba(255, 255, 255, 0.04);
+        border: 1px solid var(--border-color);
+        border-radius: 12px;
+        padding: 0.3rem;
+        margin-bottom: 1.1rem;
+      }
+      .tab {
+        flex: 1;
+        padding: 0.55rem 0.4rem;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: var(--text-secondary);
+        font-family: inherit;
+        font-size: 0.82rem;
+        font-weight: 600;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.4rem;
+        transition: background 0.2s ease, color 0.2s ease;
+      }
+      .tab.active { background: var(--accent-gradient); color: #fff; }
+      .pane.hidden { display: none; }
+
+      input[type="file"] {
+        padding: 0.75rem;
+        cursor: pointer;
+        font-size: 0.84rem;
+      }
+      input[type="file"]::file-selector-button {
+        border: 1px solid var(--border-color);
+        background: rgba(255, 255, 255, 0.06);
+        color: var(--text-primary);
+        border-radius: 8px;
+        padding: 0.35rem 0.7rem;
+        margin-right: 0.7rem;
+        font-family: inherit;
+        font-size: 0.8rem;
+        cursor: pointer;
+      }
+
+      .how {
+        margin-top: 1.4rem;
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+      }
+      .how summary {
+        cursor: pointer;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--accent-secondary);
+        list-style: none;
+      }
+      .how summary::-webkit-details-marker { display: none; }
+      .how summary::before { content: "▸ "; }
+      .how[open] summary::before { content: "▾ "; }
+      .steps {
+        text-align: left;
+        margin: 1rem auto 0;
+        display: grid;
+        gap: 0.7rem;
+        max-width: 460px;
+      }
+      .step {
+        display: flex;
+        gap: 0.7rem;
+        align-items: flex-start;
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+      }
+      .step b { color: var(--text-primary); font-weight: 600; }
+      .num {
+        flex: none;
+        width: 21px; height: 21px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+        background: var(--accent-gradient);
+        color: #fff; font-size: 0.7rem; font-weight: 700;
+        margin-top: 1px;
+      }
+      code.uri {
+        display: inline-block;
+        margin-top: 0.3rem;
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid var(--border-color);
+        border-radius: 7px;
+        padding: 0.3rem 0.5rem;
+        font-size: 0.74rem;
+        color: #a5b4fc;
+        word-break: break-all;
+      }
+      .note {
+        margin-top: 1.3rem;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        border-top: 1px solid var(--border-color);
+        padding-top: 1rem;
+      }
+      .note a { color: var(--accent-primary); }
+
+      @media (max-width: 520px) {
+        .tab span { display: none; }
+        .tabs { gap: 0.25rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="u-header">
+      <div class="u-header-inner">
+        <a class="u-logo" href="/">
+          <span class="u-logo-mark">N</span>
+          <span class="u-logo-text">NEO-WZML</span>
+          <span class="u-tag">Ultra</span>
+        </a>
+        <span class="u-tag"><i class="fa-brands fa-google-drive"></i> Token</span>
+      </div>
+    </header>
+
+    <main class="u-wrap narrow">
+      <div class="u-card">
+        {% if state == "done" %}
+        <div class="center">
+          <div class="glyph ok"><i class="fa-solid fa-circle-check"></i></div>
+          <div class="lead">Token saved</div>
+          <p class="body">
+            Your private <code>token.pickle</code> is stored and will be used
+            for your Google Drive tasks from now on. You can close this tab and
+            go back to Telegram.
+          </p>
+          <a class="u-btn" href="/"><i class="fa-solid fa-house"></i> Home</a>
+        </div>
+
+        {% elif state == "error" %}
+        <div class="center">
+          <div class="glyph bad">
+            <i class="fa-solid fa-triangle-exclamation"></i>
+          </div>
+          <div class="lead">Something went wrong</div>
+          <p class="body">{{ message }}</p>
+          <a class="u-btn ghost" href="/">
+            <i class="fa-solid fa-house"></i> Home
+          </a>
+        </div>
+
+        {% else %}
+        <div class="tg-head">
+          <div class="glyph"><i class="fa-brands fa-google-drive"></i></div>
+          <div class="lead">Generate your Drive token</div>
+          <p class="body">
+            Connect a Google account so the bot can upload to your Drive. This
+            link is yours alone and expires in 15 minutes.
+          </p>
+        </div>
+
+        {% if form_error %}
+        <div class="alert">
+          <i class="fa-solid fa-circle-exclamation"></i>
+          <span>{{ form_error }}</span>
+        </div>
+        {% endif %}
+
+        {% if has_host_client %}
+        <form method="post" action="/app/token-generator">
+          <input type="hidden" name="user_id" value="{{ user_id }}" />
+          <input type="hidden" name="token" value="{{ token }}" />
+          <input type="hidden" name="mode" value="host" />
+          <button class="u-btn wide" type="submit">
+            <i class="fa-brands fa-google"></i> Continue with Google
+          </button>
+          <p class="hint-sm">Uses the client the bot owner set up.</p>
+        </form>
+        <div class="or"><span>or bring your own</span></div>
+        {% endif %}
+
+        <form
+          method="post"
+          action="/app/token-generator"
+          enctype="multipart/form-data"
+        >
+          <input type="hidden" name="user_id" value="{{ user_id }}" />
+          <input type="hidden" name="token" value="{{ token }}" />
+          <input type="hidden" name="mode" value="own" />
+
+          <div class="tabs">
+            <button type="button" class="tab active" data-pane="upload">
+              <i class="fa-solid fa-file-arrow-up"></i> <span>Upload file</span>
+            </button>
+            <button type="button" class="tab" data-pane="paste">
+              <i class="fa-solid fa-keyboard"></i> <span>Paste ID &amp; secret</span>
+            </button>
+          </div>
+
+          <div class="pane" id="pane-upload">
+            <label for="credentials_file">credentials.json</label>
+            <input
+              type="file"
+              id="credentials_file"
+              name="credentials_file"
+              accept=".json,application/json"
+            />
+            <p class="hint-sm">
+              The OAuth client file downloaded from Google Cloud Console.
+            </p>
+          </div>
+
+          <div class="pane hidden" id="pane-paste">
+            <label for="client_id">Client ID</label>
+            <input
+              type="text"
+              id="client_id"
+              name="client_id"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="1234-abc.apps.googleusercontent.com"
+            />
+            <label for="client_secret" style="margin-top: 0.9rem">
+              Client secret
+            </label>
+            <input
+              type="password"
+              id="client_secret"
+              name="client_secret"
+              autocomplete="off"
+              spellcheck="false"
+              placeholder="GOCSPX-…"
+            />
+          </div>
+
+          <button class="u-btn wide" type="submit" style="margin-top: 1.1rem">
+            <i class="fa-brands fa-google"></i> Continue with Google
+          </button>
+        </form>
+
+        <details class="how">
+          <summary>How do I get a credentials.json?</summary>
+          <div class="steps">
+            <div class="step">
+              <span class="num">1</span>
+              <span>
+                Open <b>Google Cloud Console → APIs &amp; Services →
+                Credentials</b> and enable the <b>Google Drive API</b>.
+              </span>
+            </div>
+            <div class="step">
+              <span class="num">2</span>
+              <span>
+                Create an <b>OAuth client ID</b> of type
+                <b>Web application</b>.
+              </span>
+            </div>
+            <div class="step">
+              <span class="num">3</span>
+              <span>
+                Add this exact <b>authorized redirect URI</b>:
+                <code class="uri">{{ redirect_uri }}</code>
+              </span>
+            </div>
+            <div class="step">
+              <span class="num">4</span>
+              <span>Download the JSON and upload it above.</span>
+            </div>
+          </div>
+        </details>
+
+        <p class="note">
+          Google may warn the app is <b>unverified</b> — that's your own client.
+          Choose <b>Advanced → Go to app</b>. The bot stores only the resulting
+          token, never your password. Revoke access any time at
+          <a href="https://myaccount.google.com/permissions">Google permissions</a>.
+        </p>
+        {% endif %}
+      </div>
+    </main>
+
+    <footer class="u-foot">
+      <a href="/">NEO-WZML ULTRA</a> · this link is personal — don't share it
+    </footer>
+
+    <script>
+      document.querySelectorAll(".tab").forEach((tab) => {
+        tab.onclick = () => {
+          document
+            .querySelectorAll(".tab")
+            .forEach((t) => t.classList.remove("active"));
+          tab.classList.add("active");
+          document.querySelectorAll(".pane").forEach((p) => {
+            p.classList.toggle("hidden", p.id !== "pane-" + tab.dataset.pane);
+          });
+        };
+      });
+    </script>
+  </body>
+</html>

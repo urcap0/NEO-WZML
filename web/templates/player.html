@@ -1,0 +1,194 @@
+<!-- This file is a part of NEO-WZML (github.com/irisXDR/NEO-WZML) -->
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="robots" content="noindex, nofollow" />
+    <title>{{ file_name }} — NEO-WZML ULTRA</title>
+    <link rel="icon" type="image/png" href="https://iili.io/FLRJNMG.th.png" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+    />
+    <link rel="stylesheet" href="/static/ultra.css" />
+    <style>
+      .stage {
+        background: #000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 220px;
+      }
+      .stage video,
+      .stage audio {
+        width: 100%;
+        max-height: 68vh;
+        display: block;
+      }
+      .stage audio {
+        max-width: 620px;
+        margin: 3rem auto;
+      }
+      .no-preview {
+        padding: 3.5rem 1.5rem;
+        text-align: center;
+        color: var(--text-muted);
+      }
+      .no-preview i {
+        font-size: 2.4rem;
+        display: block;
+        margin-bottom: 0.75rem;
+        background: var(--accent-gradient);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+      .file-meta {
+        padding: 1.35rem 1.5rem;
+        border-top: 1px solid var(--border-color);
+      }
+      .file-name {
+        font-size: 1rem;
+        font-weight: 600;
+        word-break: break-word;
+        margin-bottom: 0.4rem;
+      }
+      .file-facts {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        margin-bottom: 1.15rem;
+      }
+      .fact {
+        font-size: 0.74rem;
+        padding: 0.25rem 0.65rem;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.035);
+        border: 1px solid var(--border-color);
+        color: var(--text-secondary);
+      }
+      .copy-row {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        align-items: stretch;
+      }
+      .copy-row .u-pre {
+        /* min-width:0 lets the box shrink inside the flex row instead of
+           collapsing to one character per line */
+        flex: 1 1 auto;
+        min-width: 0;
+        margin: 0;
+        display: block;
+        line-height: 1.5;
+        max-height: 5.5rem;
+        overflow-y: auto;
+      }
+      .copy-row .u-btn {
+        flex: 0 0 auto;
+        width: 48px;
+        padding: 0;
+        align-self: stretch;
+      }
+      /* the card already carries a big Download button, so the header
+         copy collapses to its icon before it can overflow */
+      @media (max-width: 430px) {
+        .u-header .u-btn span { display: none; }
+        .u-header .u-btn { padding: 0.7rem 0.85rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="u-header">
+      <div class="u-header-inner">
+        <a class="u-logo" href="/">
+          <span class="u-logo-mark">N</span>
+          <span class="u-logo-text">NEO-WZML</span>
+          <span class="u-tag">Ultra</span>
+        </a>
+        <a class="u-btn ghost" href="{{ download_url }}" title="Download">
+          <i class="fa-solid fa-download"></i> <span>Download</span>
+        </a>
+      </div>
+    </header>
+
+    <main class="u-wrap narrow">
+      <div class="u-card flush">
+        <div class="stage">
+          {% if is_video %}
+          <video controls preload="metadata" playsinline>
+            <source src="{{ stream_url }}" type="{{ mime_type }}" />
+            Your browser can't play this file.
+          </video>
+          {% elif is_audio %}
+          <audio controls preload="metadata">
+            <source src="{{ stream_url }}" type="{{ mime_type }}" />
+          </audio>
+          {% else %}
+          <div class="no-preview">
+            <i class="fa-solid fa-file-arrow-down"></i>
+            No inline preview for this file type — use the download link.
+          </div>
+          {% endif %}
+        </div>
+
+        <div class="file-meta">
+          <div class="file-name">{{ file_name }}</div>
+          <div class="file-facts">
+            <span class="fact">{{ (file_size / 1048576) | round(2) }} MB</span>
+            <span class="fact">{{ mime_type }}</span>
+            <span class="fact"><i class="fa-solid fa-bolt"></i> Direct stream</span>
+          </div>
+
+          <div class="u-actions">
+            <a class="u-btn" href="{{ download_url }}">
+              <i class="fa-solid fa-download"></i> Download
+            </a>
+            {% if is_video or is_audio %}
+            <a class="u-btn ghost" id="vlc" href="{{ stream_url }}">
+              <i class="fa-solid fa-play"></i> Open in player
+            </a>
+            {% endif %}
+          </div>
+
+          <div class="u-hint">Direct link (works in VLC / MX Player)</div>
+          <div class="copy-row">
+            <div class="u-pre" id="abs"></div>
+            <button class="u-btn ghost" id="copy" type="button">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer class="u-foot">
+      Served by <a href="/">NEO-WZML ULTRA</a> · links are private, don't share
+    </footer>
+
+    <script>
+      const abs = new URL("{{ stream_url }}", location.href).href;
+      document.getElementById("abs").textContent = abs;
+      const vlc = document.getElementById("vlc");
+      if (vlc) vlc.href = abs;
+      document.getElementById("copy").onclick = async () => {
+        const btn = document.getElementById("copy");
+        try {
+          await navigator.clipboard.writeText(abs);
+          btn.innerHTML = '<i class="fa-solid fa-check"></i>';
+        } catch (e) {
+          btn.innerHTML = '<i class="fa-solid fa-xmark"></i>';
+        }
+        setTimeout(() => {
+          btn.innerHTML = '<i class="fa-regular fa-copy"></i>';
+        }, 1600);
+      };
+    </script>
+  </body>
+</html>

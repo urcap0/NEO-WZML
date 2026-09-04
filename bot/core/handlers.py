@@ -1,5 +1,6 @@
 # This file is a part of NEO-WZML (github.com/irisXDR/NEO-WZML)
 
+from pyrogram import filters as media_filter
 from pyrogram.filters import command, private, regex
 from pyrogram.handlers import CallbackQueryHandler, EditedMessageHandler, MessageHandler
 from pyrogram.types import BotCommand
@@ -334,6 +335,40 @@ def add_handlers():
     )
     TgClient.bot.add_handler(
         CallbackQueryHandler(edit_user_settings, filters=regex("^userset"))
+    )
+    TgClient.bot.add_handler(
+        MessageHandler(
+            auto_rename,
+            filters=command(BotCommands.AutoRenameCommand, case_sensitive=True)
+            & (private | CustomFilters.authorized),
+        )
+    )
+    TgClient.bot.add_handler(
+        MessageHandler(
+            file_to_link,
+            filters=command(BotCommands.FileToLinkCommand, case_sensitive=True)
+            & (private | CustomFilters.authorized),
+        )
+    )
+    # Auto-link for files sent straight to the bot in PM. Registered in a
+    # later group so interactive flows and every command handler get the
+    # message first; it raises ContinuePropagation whenever it declines.
+    TgClient.bot.add_handler(
+        MessageHandler(
+            auto_file_to_link,
+            filters=private
+            & (media_filter.document | media_filter.video | media_filter.audio
+               | media_filter.animation | media_filter.voice)
+            & CustomFilters.authorized,
+        ),
+        group=3,
+    )
+    TgClient.bot.add_handler(
+        MessageHandler(
+            token_generator,
+            filters=command(BotCommands.TokenGenCommand, case_sensitive=True)
+            & (private | CustomFilters.authorized),
+        )
     )
     TgClient.bot.add_handler(
         MessageHandler(

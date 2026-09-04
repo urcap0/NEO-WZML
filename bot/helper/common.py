@@ -166,6 +166,10 @@ class TaskConfig:
         self.seed = False
         self.join = False
         self.merge_video = False
+        self.stream_leech = False
+        self.stream_total_files = 0
+        self.stream_done_files = 0
+        self._stream_leech_handled = False
         self.private_link = False
         self.stop_duplicate = False
         self.sample_video = False

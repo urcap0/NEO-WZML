@@ -105,6 +105,23 @@ UPLOAD_PATHS = {}
 
 # Log channels
 LEECH_DUMP_CHAT = ""
+
+# FileToLink — public streaming/download links for Telegram files (/link)
+FILETOLINK_ENABLED = False
+FILETOLINK_CHAT = ""  # bin channel for /link; falls back to LEECH_DUMP_CHAT
+FILETOLINK_AUTO = True  # auto-link files sent straight to the bot in PM
+
+# /tokengen — per-user Google Drive token generation via web OAuth
+GOOGLE_CLIENT_ID = ""
+GOOGLE_CLIENT_SECRET = ""
+GOOGLE_CREDENTIALS_JSON = ""  # or paste the whole client file here
+
+# Auto-rename template, e.g. "{title} - S{season}E{episode} [{quality}]"
+# Per-user via /autorename; this is the global default.
+AUTO_RENAME = ""
+
+# GDrive folder leech: download 1 file, upload it, delete it, repeat
+GDRIVE_STREAM_LEECH = False
 LINKS_LOG_ID = ""
 MIRROR_LOG_ID = ""
 

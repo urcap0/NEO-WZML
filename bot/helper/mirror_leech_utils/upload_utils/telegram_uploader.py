@@ -78,6 +78,7 @@ class TelegramUploader:
         self._user_session = False
         self._prm_media = False
         self._error = ""
+        self._is_log_del = False
         self._auto_thumb_enabled = (
             not self._listener.thumb and
             self._listener.user_dict.get("AUTO_THUMBNAIL", False)
@@ -482,11 +483,10 @@ class TelegramUploader:
             )
 
     async def upload(self):
-        await self._user_settings()
-        res = await self._msg_to_reply()
-        if not res:
+        started = await self._start_session()
+        if not started:
             return
-        is_log_del = False
+        items = []
         for dirpath, _, files in natsorted(await sync_to_async(walk, self._path)):
             if dirpath.strip().endswith("/yt-dlp-thumb"):
                 continue
@@ -495,86 +495,119 @@ class TelegramUploader:
                 await rmtree(dirpath, ignore_errors=True)
                 continue
             for file_ in natsorted(files):
-                self._error = ""
-                self._up_path = f_path = ospath.join(dirpath, file_)
-                if not await aiopath.exists(self._up_path):
-                    LOGGER.error(f"{self._up_path} not exists! Continue uploading!")
-                    continue
-                try:
-                    f_size = await aiopath.getsize(self._up_path)
+                items.append((dirpath, file_))
+        await self._upload_items(items)
+        await self._finish_session()
 
-                    is_allowed, reason = await check_strict_file_mode(self._up_path, file_)
-                    if not is_allowed:
-                        LOGGER.info(f"STRICT_FILE_MODE: Skipping {reason}: {self._up_path}")
-                        await remove(self._up_path)
-                        continue
-                    else:
-                        if Config.STRICT_FILE_MODE:
-                            LOGGER.info(f"STRICT_FILE_MODE: Uploading video {file_} ({f_size / (1024*1024):.2f}MB)")
+    async def _start_session(self):
+        """Set up the reply message and per-run counters. Shared by the
+        normal one-shot upload() and the GDrive folder streaming leech
+        (GoogleDriveDownload._download_folder_streaming), which calls this
+        once up front and then feeds files in one at a time via
+        upload_single() instead of walking self._path."""
+        await self._user_settings()
+        res = await self._msg_to_reply()
+        if not res:
+            return False
+        self._is_log_del = False
+        return True
 
-                    self._total_files += 1
+    async def upload_single(self, dirpath, file_):
+        """Upload exactly one (dirpath, file_) pair. _upload_items() already
+        deletes the file from disk right after a successful send (or on an
+        unrecoverable per-file error), so callers that invoke this once per
+        downloaded file naturally get download-one/upload-one/delete-one
+        behavior with no extra cleanup step needed here."""
+        await self._upload_items([(dirpath, file_)])
 
-                    self._prm_media = True if f_size > 2097152000 else False
+    async def _upload_items(self, items):
+        for dirpath, file_ in items:
+            self._error = ""
+            self._up_path = f_path = ospath.join(dirpath, file_)
+            if not await aiopath.exists(self._up_path):
+                LOGGER.error(f"{self._up_path} not exists! Continue uploading!")
+                continue
+            try:
+                f_size = await aiopath.getsize(self._up_path)
 
-                    max_size = 4194304000 if (self._prm_media and TgClient.IS_PREMIUM_USER) else 2097152000
-                    if f_size > max_size:
-                        raise ValueError(
-                            f"File {self._up_path} ({f_size} bytes) exceeds max "
-                            f"{max_size} bytes. File should have been split during download."
-                        )
-
-                    await self._switching_client()
-
-                    if f_size == 0:
-                        LOGGER.error(
-                            f"{self._up_path} size is zero, telegram don't upload zero size files"
-                        )
-                        self._corrupted += 1
-                        continue
-                    if self._listener.is_cancelled:
-                        return
-                    await self._user_settings()
-                    cap_mono = await self._prepare_file(file_, dirpath)
-                    if self._last_msg_in_group:
-                        group_lists = [
-                            x for v in self._media_dict.values() for x in v.keys()
-                        ]
-                        match = re_match(r".+(?=\.0*\d+$)|.+(?=\.part\d+\..+$)", f_path)
-                        if not match or match and match.group(0) not in group_lists:
-                            for key, value in list(self._media_dict.items()):
-                                for subkey, msgs in list(value.items()):
-                                    if len(msgs) > 1:
-                                        await self._send_media_group(subkey, key, msgs)
-                    self._last_msg_in_group = False
-                    self._last_uploaded = 0
-                    await self._upload_file(cap_mono, file_, f_path)
-                    if self._log_msg and not is_log_del and Config.CLEAN_LOG_MSG:
-                        await delete_message(self._log_msg)
-                        is_log_del = True
-                    if self._listener.is_cancelled:
-                        return
-                    if (
-                        not self._is_corrupted
-                        and (self._listener.is_super_chat or self._listener.up_dest)
-                        and self._sent_msg is not None
-                        and hasattr(self._sent_msg, "chat")
-                        and self._sent_msg.chat is not None
-                        and hasattr(self._sent_msg, "link")
-                    ):
-                        self._msgs_dict[self._sent_msg.link] = file_
-                    await sleep(1)
-                except CancelledUpload:
-                    return
-                except Exception as err:
-                    LOGGER.error(f"{err}. Path: {self._up_path}", exc_info=True)
-                    self._error = str(err)
-                    self._corrupted += 1
-                    if self._listener.is_cancelled:
-                        return
-                if not self._listener.is_cancelled and await aiopath.exists(
-                    self._up_path
-                ):
+                is_allowed, reason = await check_strict_file_mode(self._up_path, file_)
+                if not is_allowed:
+                    LOGGER.info(f"STRICT_FILE_MODE: Skipping {reason}: {self._up_path}")
                     await remove(self._up_path)
+                    continue
+                else:
+                    if Config.STRICT_FILE_MODE:
+                        LOGGER.info(f"STRICT_FILE_MODE: Uploading video {file_} ({f_size / (1024*1024):.2f}MB)")
+
+                self._total_files += 1
+
+                self._prm_media = True if f_size > 2097152000 else False
+
+                max_size = 4194304000 if (self._prm_media and TgClient.IS_PREMIUM_USER) else 2097152000
+                if f_size > max_size:
+                    raise ValueError(
+                        f"File {self._up_path} ({f_size} bytes) exceeds max "
+                        f"{max_size} bytes. File should have been split during download."
+                    )
+
+                await self._switching_client()
+
+                if f_size == 0:
+                    LOGGER.error(
+                        f"{self._up_path} size is zero, telegram don't upload zero size files"
+                    )
+                    self._corrupted += 1
+                    continue
+                if self._listener.is_cancelled:
+                    return
+                await self._user_settings()
+                cap_mono = await self._prepare_file(file_, dirpath)
+                if self._last_msg_in_group:
+                    group_lists = [
+                        x for v in self._media_dict.values() for x in v.keys()
+                    ]
+                    match = re_match(r".+(?=\.0*\d+$)|.+(?=\.part\d+\..+$)", f_path)
+                    if not match or match and match.group(0) not in group_lists:
+                        for key, value in list(self._media_dict.items()):
+                            for subkey, msgs in list(value.items()):
+                                if len(msgs) > 1:
+                                    await self._send_media_group(subkey, key, msgs)
+                self._last_msg_in_group = False
+                self._last_uploaded = 0
+                await self._upload_file(cap_mono, file_, f_path)
+                if self._log_msg and not self._is_log_del and Config.CLEAN_LOG_MSG:
+                    await delete_message(self._log_msg)
+                    self._is_log_del = True
+                if self._listener.is_cancelled:
+                    return
+                if (
+                    not self._is_corrupted
+                    and (self._listener.is_super_chat or self._listener.up_dest)
+                    and self._sent_msg is not None
+                    and hasattr(self._sent_msg, "chat")
+                    and self._sent_msg.chat is not None
+                    and hasattr(self._sent_msg, "link")
+                ):
+                    self._msgs_dict[self._sent_msg.link] = file_
+                await sleep(1)
+            except CancelledUpload:
+                return
+            except Exception as err:
+                LOGGER.error(f"{err}. Path: {self._up_path}", exc_info=True)
+                self._error = str(err)
+                self._corrupted += 1
+                if self._listener.is_cancelled:
+                    return
+            if not self._listener.is_cancelled and await aiopath.exists(
+                self._up_path
+            ):
+                await remove(self._up_path)
+
+    async def _finish_session(self):
+        """Flush any pending media groups and send the single final
+        completion/error message for the whole task. Shared tail of
+        upload() and of the streaming leech path, so a multi-file GDrive
+        folder still gets exactly one summary message, not one per file."""
         if self._listener.is_cancelled:
             return
         for key, value in list(self._media_dict.items()):

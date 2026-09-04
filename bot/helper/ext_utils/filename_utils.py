@@ -37,6 +37,18 @@ async def format_filename(file_name, user_dict, is_leech=False):
 
     original_file = file_name
 
+    # advanced auto-rename template runs first so its structured output
+    # then receives prefix/suffix/name_swap on top
+    auto_rename = (
+        user_dict.get("AUTO_RENAME", "")
+        or getattr(Config, "AUTO_RENAME", "")
+        or ""
+    )
+    if auto_rename:
+        from bot.helper.ext_utils.autorename_utils import apply_autorename_template
+
+        file_name = apply_autorename_template(file_name, auto_rename)
+
     file_name = re_sub(
         r"www\.[a-zA-Z0-9-]+\.[a-zA-Z]{2,6}",
         "",

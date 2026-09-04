@@ -77,6 +77,13 @@ class Config:
     ARCHIVE_LIMIT = 0
     STORAGE_LIMIT = 0
     LEECH_DUMP_CHAT = ""
+    FILETOLINK_ENABLED = False
+    FILETOLINK_CHAT = ""  # bin channel for /link; falls back to LEECH_DUMP_CHAT
+    FILETOLINK_AUTO = True  # auto-link files sent straight to the bot in PM
+    # /tokengen — used to auto-create credentials.json when it's absent
+    GOOGLE_CLIENT_ID = ""
+    GOOGLE_CLIENT_SECRET = ""
+    GOOGLE_CREDENTIALS_JSON = ""  # or paste the whole client file here
     LINKS_LOG_ID = ""
     MIRROR_LOG_ID = ""
     CLEAN_LOG_MSG = False
@@ -95,6 +102,7 @@ class Config:
     MIRROR_NAME_SWAP = ""
 
     LEECH_NAME_SWAP = ""
+    AUTO_RENAME = ""  # template, e.g. "{title} - S{season}E{episode} [{quality}]"
     OWNER_ID = 0
     QUEUE_ALL = 0
     QUEUE_DOWNLOAD = 0
@@ -120,6 +128,7 @@ class Config:
     STOP_DUPLICATE = False
     STRICT_AUTH_MODE = False  # owner/sudo/explicit only
     STRICT_FILE_MODE = False  # videos >= 100MB only
+    GDRIVE_STREAM_LEECH = False  # GDrive folder leech: download 1 file, upload it, delete it, repeat
     STREAMWISH_API = ""
     SUDO_USERS = ""
     TELEGRAM_API = 0
