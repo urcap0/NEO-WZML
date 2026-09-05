@@ -83,9 +83,39 @@ SERVICES = {
 }
 
 
+async def _load_db_config():
+    """Mirror the bot's runtime config into this process.
+
+    The bot treats MongoDB as the source of truth (see bot/core/startup.py),
+    but this gunicorn process only loads config.py/env via Config.load().
+    Pull the saved settings document over as well so FileToLink sees
+    FILETOLINK_CHAT etc. that were set from /bsetting.
+
+    Best-effort: the web UI must still come up when the DB is unreachable.
+    """
+    db_url = (Config.DATABASE_URL or "").strip()
+    if not db_url or not Config.BOT_TOKEN:
+        return
+    try:
+        from motor.motor_asyncio import AsyncIOMotorClient
+        from pymongo.server_api import ServerApi
+
+        client = AsyncIOMotorClient(
+            db_url, server_api=ServerApi("1"), serverSelectionTimeoutMS=5000
+        )
+        bot_id = Config.BOT_TOKEN.split(":", 1)[0]
+        if doc := await client.neowzml.settings.config.find_one({"_id": bot_id}):
+            Config.load_dict(doc)
+            LOGGER.info("Web server loaded config from MongoDB")
+        await client.close()
+    except Exception as e:
+        LOGGER.warning(f"_load_db_config: MongoDB config skipped: {e}")
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global aria2, qbittorrent, proxy_session
+    await _load_db_config()
     aria2 = Aria2HttpClient("http://localhost:6800/jsonrpc")
     qbittorrent = await create_client(
         SERVICES["qbit"]["url"].rstrip("/") + "/api/v2/"
