@@ -184,7 +184,11 @@ async def confirm_restart(_, query):
     await delete_message(message)
     if data[1] == "confirm":
         intervals["stopAll"] = True
-        restart_message = await send_message(reply_to, "<i>Restarting...</i>")
+        restart_message = (
+            await send_message(reply_to, "<i>Restarting...</i>")
+            if reply_to is not None
+            else None
+        )
         await TgClient.stop()
         if scheduler.running:
             scheduler.shutdown(wait=False)
@@ -224,7 +228,7 @@ async def confirm_restart(_, query):
                 "(restart proceeds even if self-update failed).",
                 rc2,
             )
-        if restart_message is not None:
+        if restart_message is not None and hasattr(restart_message, "chat"):
             async with aiopen(".restartmsg", "w") as f:
                 await f.write(
                     f"{restart_message.chat.id}\n{restart_message.id}\n"

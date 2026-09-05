@@ -11,6 +11,7 @@ from bot.helper.telegram_helper.bot_commands import BotCommands
 from bot.helper.telegram_helper.filters import CustomFilters
 from bot.modules import *
 from bot.core.tg_client import TgClient
+from bot import bot_loop
 
 
 def add_handlers():
@@ -474,4 +475,4 @@ def add_handlers():
                     BotCommand(f"{cmd.lower()}{Config.CMD_SUFFIX}", description)
                 )
 
-        TgClient.bot.set_bot_commands(telegram_commands)
+        bot_loop.create_task(TgClient.bot.set_bot_commands(telegram_commands))
