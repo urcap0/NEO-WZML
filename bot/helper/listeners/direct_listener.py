@@ -2,6 +2,7 @@
 
 from asyncio import sleep, TimeoutError
 from aiohttp.client_exceptions import ClientError
+from aioaria2.exceptions import Aria2rpcException
 
 from bot import LOGGER
 from bot.core.torrent_manager import TorrentManager, aria2_name
@@ -16,6 +17,20 @@ class DirectListener:
         self._failed = 0
         self.download_task = None
         self.name = self.listener.name
+
+    async def _tell_status(self, gid, retries=3):
+        last_exc = None
+        for attempt in range(retries):
+            try:
+                return await TorrentManager.aria2.tellStatus(gid)
+            except (Aria2rpcException, TimeoutError, ClientError) as e:
+                last_exc = e
+                LOGGER.warning(
+                    f"Aria2 tellStatus failed for {gid} (attempt {attempt + 1}/{retries}): {e}"
+                )
+                if attempt < retries - 1:
+                    await sleep(2)
+        raise last_exc
 
     @property
     def processed_bytes(self):
@@ -57,13 +72,29 @@ class DirectListener:
                 self._failed += 1
                 LOGGER.error(f"Unable to download {filename} due to: {e}")
                 continue
-            self.download_task = await TorrentManager.aria2.tellStatus(gid)
+            try:
+                self.download_task = await self._tell_status(gid)
+            except (Aria2rpcException, TimeoutError, ClientError) as e:
+                self._failed += 1
+                LOGGER.error(
+                    f"Unable to fetch status for {filename} (gid {gid}) due to: {e}"
+                )
+                with suppress(Exception):
+                    await TorrentManager.aria2_remove({"gid": gid})
+                continue
             while True:
                 if self.listener.is_cancelled:
                     if self.download_task:
                         await TorrentManager.aria2_remove(self.download_task)
                     break
-                self.download_task = await TorrentManager.aria2.tellStatus(gid)
+                try:
+                    self.download_task = await self._tell_status(gid)
+                except (Aria2rpcException, TimeoutError, ClientError) as e:
+                    LOGGER.error(
+                        f"Status poll failed for {filename} (gid {gid}) due to: {e}"
+                    )
+                    await sleep(2)
+                    continue
                 if error_message := self.download_task.get("errorMessage"):
                     self._failed += 1
                     LOGGER.error(

@@ -4,7 +4,8 @@ from aiofiles.os import remove, path as aiopath
 from aiofiles import open as aiopen
 from base64 import b64encode
 from aiohttp.client_exceptions import ClientError
-from asyncio import TimeoutError
+from aioaria2.exceptions import Aria2rpcException
+from asyncio import TimeoutError, sleep
 
 from bot import task_dict_lock, task_dict, LOGGER
 from bot.core.config_manager import Config
@@ -55,7 +56,27 @@ async def add_aria2_download(listener, dpath, header, ratio, seed_time):
         LOGGER.info(f"Aria2c Download Error: {e}")
         await listener.on_download_error(f"{e}")
         return
-    download = await TorrentManager.aria2.tellStatus(gid)
+
+    download = None
+    last_exc = None
+    for attempt in range(3):
+        try:
+            download = await TorrentManager.aria2.tellStatus(gid)
+            break
+        except (Aria2rpcException, TimeoutError, ClientError) as e:
+            last_exc = e
+            LOGGER.warning(
+                f"Aria2c tellStatus failed for {gid} (attempt {attempt + 1}/3): {e}"
+            )
+            if attempt < 2:
+                await sleep(2)
+    if download is None:
+        LOGGER.error(f"Aria2c status fetch failed for {gid}: {last_exc}")
+        await listener.on_download_error(
+            f"Unable to verify download with Aria2 after adding it: {last_exc}"
+        )
+        return
+
     if download.get("errorMessage"):
         error = str(download["errorMessage"]).replace("<", " ").replace(">", " ")
         LOGGER.info(f"Aria2c Download Error: {error}")

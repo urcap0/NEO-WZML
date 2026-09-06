@@ -10,6 +10,11 @@ from bot.core.config_manager import Config
 from bot.core.tg_client import TgClient
 
 from bot import DOWNLOAD_DIR, LOGGER, bot_loop, task_dict_lock
+
+
+def _log_task_exception(task):
+    if exception := task.exception():
+        LOGGER.error(f"Mirror task crashed: {exception}")
 from bot.helper.ext_utils.bot_utils import (
     COMMAND_USAGE,
     arg_parser,
@@ -571,29 +576,39 @@ class Mirror(TaskListener):
 
 
 async def mirror(client, message):
-    bot_loop.create_task(Mirror(client, message).new_event())
+    bot_loop.create_task(Mirror(client, message).new_event()).add_done_callback(
+        _log_task_exception
+    )
 
 
 async def qb_mirror(client, message):
-    bot_loop.create_task(Mirror(client, message, is_qbit=True).new_event())
+    bot_loop.create_task(Mirror(client, message, is_qbit=True).new_event()).add_done_callback(
+        _log_task_exception
+    )
 
 
 async def jd_mirror(client, message):
-    bot_loop.create_task(Mirror(client, message, is_jd=True).new_event())
+    bot_loop.create_task(Mirror(client, message, is_jd=True).new_event()).add_done_callback(
+        _log_task_exception
+    )
 
 
 async def leech(client, message):
     if Config.DISABLE_LEECH:
         await message.reply("The Leech command is currently disabled.")
         return
-    bot_loop.create_task(Mirror(client, message, is_leech=True).new_event())
+    bot_loop.create_task(Mirror(client, message, is_leech=True).new_event()).add_done_callback(
+        _log_task_exception
+    )
 
 
 async def qb_leech(client, message):
     bot_loop.create_task(
         Mirror(client, message, is_qbit=True, is_leech=True).new_event()
-    )
+    ).add_done_callback(_log_task_exception)
 
 
 async def jd_leech(client, message):
-    bot_loop.create_task(Mirror(client, message, is_leech=True, is_jd=True).new_event())
+    bot_loop.create_task(
+        Mirror(client, message, is_leech=True, is_jd=True).new_event()
+    ).add_done_callback(_log_task_exception)
